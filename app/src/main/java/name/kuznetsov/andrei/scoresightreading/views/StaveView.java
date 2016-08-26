@@ -51,6 +51,7 @@ public class StaveView extends View {
         initStaveLinePoints();
     }
 
+    private boolean showClickHint = true;
     private float staveLinePoints[];
     private int interlineInterval12 = 20; // 1/2nf of interline interval
     private int midLineOffset = interlineInterval12 * 2 * 7;

@@ -27,4 +27,13 @@
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"/>
 
+    <ImageView
+        android:layout_width="128dp"
+        android:layout_height="128dp"
+        android:id="@+id/img_hint_click"
+        android:src="@drawable/click2"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true"
+        android:clickable="false"/>
+
 </RelativeLayout>

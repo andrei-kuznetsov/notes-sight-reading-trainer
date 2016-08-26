@@ -25,8 +25,9 @@ public class MainActivity extends Activity {
 
         final StaveView stave = (StaveView) findViewById(R.id.staveview);
         final Switch twoVoices = (Switch) findViewById(R.id.two_voices);
+        final View clickHint = findViewById(R.id.img_hint_click);
 
-        stave.setOnClickListener(new View.OnClickListener() {
+        View.OnClickListener clickListener = new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 int nVoices = 1;
@@ -34,10 +35,13 @@ public class MainActivity extends Activity {
                     nVoices = 2;
                 }
                 PolySeqRep seq = genRandomPolySeqRep(nVoices);
+                clickHint.setVisibility(View.GONE);
                 stave.renderNotes(seq);
             }
-        });
+        };
 
+        stave.setOnClickListener(clickListener);
+        twoVoices.setOnClickListener(clickListener);
     }
 
     private int getMinVal() {
