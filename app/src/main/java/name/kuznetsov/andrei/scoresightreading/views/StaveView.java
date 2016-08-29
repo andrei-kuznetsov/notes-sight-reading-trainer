@@ -51,8 +51,8 @@ public class StaveView extends View {
         initStaveLinePoints();
     }
 
-    private boolean showClickHint = true;
     private float staveLinePoints[];
+    private float measureBarPoints[];
     private int interlineInterval12 = 20; // 1/2nf of interline interval
     private int midLineOffset = interlineInterval12 * 2 * 7;
 
@@ -77,6 +77,8 @@ public class StaveView extends View {
             staveLinePoints[i + 2] = 40;
             staveLinePoints[i + 1] = staveLinePoints[i + 3] = getInterlineInterval12() * (8 + i + ((i < 5 * 4) ? 0 : 4)) / 2;
         }
+
+        measureBarPoints = new float[2 * (4 * maxColumn / measureColumn)];
 
         initSample();
     }
@@ -127,13 +129,34 @@ public class StaveView extends View {
             staveLinePoints[idxBase + 1] = staveLinePoints[idxBase + 3] = midLineOffset + ((i + 1) * getInterlineInterval());
             staveLinePoints[idxBase + 5] = staveLinePoints[idxBase + 7] = midLineOffset - ((i + 1) * getInterlineInterval());
         }
+
+        for (int i = 0; i < maxColumn / measureColumn; i++) {
+            final int idxBase = i * 8;
+            measureBarPoints[idxBase + 0] =
+                    measureBarPoints[idxBase + 2] =
+                            measureBarPoints[idxBase + 4] =
+                                    measureBarPoints[idxBase + 6] =
+                                            (i + 1) * getPosXInterval() * measureColumn;
+
+            measureBarPoints[idxBase + 1] = midLineOffset - 5 * getInterlineInterval();
+            measureBarPoints[idxBase + 3] = midLineOffset - 1 * getInterlineInterval();
+            measureBarPoints[idxBase + 5] = midLineOffset + 5 * getInterlineInterval();
+            measureBarPoints[idxBase + 7] = midLineOffset + 1 * getInterlineInterval();
+        }
     }
+
+    final static int maxColumn = 16;
+    final static int measureColumn = 4;
 
     @Override
     public void draw(Canvas canvas) {
         super.draw(canvas);
 
+        // draw horizontal stave lines
         canvas.drawLines(staveLinePoints, paint);
+
+        // draw vertical measure bars
+        canvas.drawLines(measureBarPoints, paint);
 
         canvas.translate(getInterlineInterval(), 0);
         for (InlineNote i : notesToRender) {
@@ -145,7 +168,6 @@ public class StaveView extends View {
             boolean flagUp = ((i.voice & 1) == 0);
             if (flagUp) {
                 float lnx = cx + getInterlineInterval12() - 3;
-
                 canvas.drawLine(lnx, cy, lnx, cy - getInterlineInterval12() * 5, paint);
             } else {
                 float lnx = cx - getInterlineInterval12() + 3;
