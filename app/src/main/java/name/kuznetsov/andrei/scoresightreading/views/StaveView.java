@@ -53,8 +53,14 @@ public class StaveView extends View {
 
     private float staveLinePoints[];
     private float measureBarPoints[];
-    private int interlineInterval12 = 20; // 1/2nf of interline interval
+    private int interlineInterval12 = 20; // (1/2) half of interline interval
     private int midLineOffset = interlineInterval12 * 2 * 7;
+    private int maxColumn = 16;
+    private final int measureColumn = 4;
+
+    public int getMaxColumn() {
+        return maxColumn;
+    }
 
     // 1/2nd of interline interval
     private int getInterlineInterval12() {
@@ -72,14 +78,7 @@ public class StaveView extends View {
 
     private void initStaveLinePoints() {
         staveLinePoints = new float[5 * 4 + 5 * 4];
-        for (int i = 0; i < staveLinePoints.length; i += 4) {
-            staveLinePoints[i] = 0;
-            staveLinePoints[i + 2] = 40;
-            staveLinePoints[i + 1] = staveLinePoints[i + 3] = getInterlineInterval12() * (8 + i + ((i < 5 * 4) ? 0 : 4)) / 2;
-        }
-
-        measureBarPoints = new float[2 * (4 * maxColumn / measureColumn)];
-
+        measureBarPoints = new float[2 * (4 * getMaxColumn() / measureColumn)];
         initSample();
     }
 
@@ -89,7 +88,7 @@ public class StaveView extends View {
 
         int v0 = 6 * 7;
         int v1 = 2 * 7;
-        for (int i = 0; i < 16; i++, v0--, v1++) {
+        for (int i = 0; i < 24; i++, v0--, v1++) {
             NotesEnum v0note = NotesEnum.values()[v0 % 7];
             int v0octave = v0 / 7;
 
@@ -122,6 +121,8 @@ public class StaveView extends View {
         super.onLayout(changed, left, top, right, bottom);
 
         midLineOffset = (bottom + top) / 2;
+        maxColumn = (right - left) / getPosXInterval();
+
         interlineInterval12 = (bottom - top) / ((7 * 2 + 5) * 2);
         for (int i = 0; i < 5; i++) {
             final int idxBase = i * 8;
@@ -144,9 +145,6 @@ public class StaveView extends View {
             measureBarPoints[idxBase + 7] = midLineOffset + 1 * getInterlineInterval();
         }
     }
-
-    final static int maxColumn = 16;
-    final static int measureColumn = 4;
 
     @Override
     public void draw(Canvas canvas) {
