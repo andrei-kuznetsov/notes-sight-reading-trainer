@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -35,6 +36,7 @@ public class StaveView extends View {
     }
 
     private List<InlineNote> notesToRender;
+    private PolySeqRep notes;
 
     public StaveView(Context context) {
         super(context);
@@ -109,11 +111,17 @@ public class StaveView extends View {
         renderNotes(seq);
     }
 
-    private static Paint paint = new Paint();
+    private static Paint strokePaint = new Paint();
+    private static Paint strokeAndFillPaint = new Paint();
 
     static {
-        paint.setColor(Color.BLACK);
-        paint.setStrokeWidth(2.f);
+        strokePaint.setColor(Color.BLACK);
+        strokePaint.setStrokeWidth(2.f);
+        strokePaint.setStyle(Paint.Style.STROKE);
+
+        strokeAndFillPaint.setColor(Color.BLACK);
+        strokeAndFillPaint.setStrokeWidth(2.f);
+        strokeAndFillPaint.setStyle(Paint.Style.FILL_AND_STROKE);
     }
 
     @Override
@@ -146,30 +154,127 @@ public class StaveView extends View {
         }
     }
 
+    final static float _1sqrt2 = 0.707106781f; // 1/sqrt(2)
+
     @Override
     public void draw(Canvas canvas) {
         super.draw(canvas);
 
         // draw horizontal stave lines
-        canvas.drawLines(staveLinePoints, paint);
+        canvas.drawLines(staveLinePoints, strokePaint);
 
         // draw vertical measure bars
-        canvas.drawLines(measureBarPoints, paint);
+        canvas.drawLines(measureBarPoints, strokePaint);
 
         canvas.translate(getInterlineInterval(), 0);
+
         for (InlineNote i : notesToRender) {
             float cx = i.column * getPosXInterval();
             float cy = midLineOffset - i.noteLine * getInterlineInterval12();
-            canvas.drawCircle(cx, cy, getInterlineInterval12() - 2, paint);
+
+            float ovalR = getInterlineInterval12() * 0.65f;
+            float ovalRX = (ovalR * 1.3f) / 0.75f; //getInterlineInterval12() + 4;
+            float ovalRY = ovalR; //getInterlineInterval12() - 4;
+
+            Path bezierPath = new Path();
+
+            bezierPath.moveTo(cx - ovalRY * _1sqrt2, cy - ovalRY * _1sqrt2);
+            bezierPath.cubicTo(
+                    cx + (ovalRX - ovalRY) * _1sqrt2, cy - (ovalRY + ovalRX) * _1sqrt2,
+                    cx + (ovalRX + ovalRY) * _1sqrt2, cy + (ovalRY - ovalRX) * _1sqrt2,
+                    cx + ovalRY * _1sqrt2, cy + ovalRY * _1sqrt2);
+
+            bezierPath.cubicTo(
+                    cx + (ovalRY - ovalRX) * _1sqrt2, cy + (ovalRX + ovalRY) * _1sqrt2,
+                    cx - (ovalRX + ovalRY) * _1sqrt2, cy + (ovalRX - ovalRY) * _1sqrt2,
+                    cx - ovalRY * _1sqrt2, cy - ovalRY * _1sqrt2
+            );
+            bezierPath.close();
+            canvas.drawPath(bezierPath, strokeAndFillPaint);
 
             // draw note flags
             boolean flagUp = ((i.voice & 1) == 0);
             if (flagUp) {
                 float lnx = cx + getInterlineInterval12() - 3;
-                canvas.drawLine(lnx, cy, lnx, cy - getInterlineInterval12() * 5, paint);
+                float ystem = cy - getInterlineInterval12() * 7 + 5;
+                canvas.drawLine(lnx, cy, lnx, ystem, strokePaint);
+
+///                This is good long (single):
+///                bezierPath.reset();
+///                bezierPath.moveTo(lnx, ystem);
+///
+///                bezierPath.cubicTo(
+///                        lnx, ystem + 2 * getInterlineInterval12(),
+///                        lnx + getInterlineInterval12() * 2.5f, ystem + getInterlineInterval12() * 2,
+///                        lnx + getInterlineInterval12() * 1.5f, ystem + getInterlineInterval12() * 6
+///                );
+///
+///                bezierPath.cubicTo(
+///                        lnx + getInterlineInterval12() * 2.5f, ystem + getInterlineInterval12() * 2,
+///                        lnx, ystem + 2 * getInterlineInterval12(),
+///                        lnx, ystem + 2 * getInterlineInterval12()
+///                );
+///
+///                bezierPath.close();
+///                canvas.drawPath(bezierPath, strokeAndFillPaint);
+
+
+                bezierPath.moveTo(lnx, ystem);
+                bezierPath.cubicTo(
+                        lnx, ystem + getInterlineInterval12(),
+                        lnx + getInterlineInterval12() * 2.5f, ystem + getInterlineInterval12() * 2,
+                        lnx + getInterlineInterval12() * 1.5f, ystem + getInterlineInterval12() * 4
+                );
+                bezierPath.cubicTo(
+                        lnx + getInterlineInterval12() * 2.5f, ystem + getInterlineInterval12() * 2,
+                        lnx, ystem + 1.5f * getInterlineInterval12(),
+                        lnx, ystem + 1.5f * getInterlineInterval12()
+                );
+                bezierPath.close();
+                canvas.drawPath(bezierPath, strokeAndFillPaint);
+
+                canvas.translate(0, getInterlineInterval12() * 1.5f);
+
+                bezierPath.reset();
+                bezierPath.moveTo(lnx, ystem);
+                bezierPath.cubicTo(
+                        lnx, ystem + getInterlineInterval12(),
+                        lnx + getInterlineInterval12() * 2.5f, ystem + getInterlineInterval12() * 2,
+                        lnx + getInterlineInterval12() * 1.5f, ystem + getInterlineInterval12() * 4
+                );
+                bezierPath.cubicTo(
+                        lnx + getInterlineInterval12() * 2.5f, ystem + getInterlineInterval12() * 2,
+                        lnx, ystem + 1.5f * getInterlineInterval12(),
+                        lnx, ystem + 1.5f * getInterlineInterval12()
+                );
+                bezierPath.close();
+                canvas.drawPath(bezierPath, strokeAndFillPaint);
+
+
+                canvas.translate(0, -getInterlineInterval12() * 1.5f);
+
+
+//                bezierPath.reset();
+//                bezierPath.moveTo(lnx, ystem + 2 * getInterlineInterval12());
+//                bezierPath.cubicTo(
+//                        lnx, ystem + 2 * getInterlineInterval12(),
+//                        lnx + getInterlineInterval12() * 2.5f, ystem + 5 * getInterlineInterval12(),
+//                        lnx + getInterlineInterval12() * 2, ystem + 7 * getInterlineInterval12()
+//                );
+//
+//
+//                bezierPath.cubicTo(
+//                        lnx + getInterlineInterval12() * 2.5f, ystem + 5 * getInterlineInterval12(),
+//                        lnx, ystem + 3 * getInterlineInterval12(),
+//                        lnx, ystem + 3 * getInterlineInterval12()
+//                );
+//
+//                bezierPath.close();
+//                canvas.drawPath(bezierPath, strokeAndFillPaint);
+
             } else {
                 float lnx = cx - getInterlineInterval12() + 3;
-                canvas.drawLine(lnx, cy, lnx, cy + getInterlineInterval12() * 5, paint);
+                canvas.drawLine(lnx, cy, lnx, cy + getInterlineInterval12() * 5, strokePaint);
             }
 
             // draw additional lines if needed
@@ -187,7 +292,7 @@ public class StaveView extends View {
 
                 for (int exln = lnStart; exln <= lnEnd; exln += 2) {
                     final int lny = midLineOffset - exln * getInterlineInterval12();
-                    canvas.drawLine(cx - getInterlineInterval() * 3 / 4, lny, cx + getInterlineInterval() * 3 / 4, lny, paint);
+                    canvas.drawLine(cx - getInterlineInterval() * 3 / 4, lny, cx + getInterlineInterval() * 3 / 4, lny, strokePaint);
                 }
             }
         }
@@ -210,5 +315,9 @@ public class StaveView extends View {
         }
 
         invalidate();
+    }
+
+    public PolySeqRep getNotes() {
+        return notes;
     }
 }

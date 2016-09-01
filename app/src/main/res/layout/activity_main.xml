@@ -49,6 +49,14 @@
             android:layout_alignParentTop="true"
             android:src="@drawable/rsemicircle" />
 
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="New Button"
+            android:id="@+id/bn_play"
+            android:layout_alignParentTop="true"
+            android:layout_centerHorizontal="true" />
+
         <!--ImageView
             android:layout_width="@dimen/drawer_handle_width"
             android:layout_height="@dimen/drawer_handle_height"

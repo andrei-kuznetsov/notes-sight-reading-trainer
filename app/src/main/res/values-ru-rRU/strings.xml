@@ -6,6 +6,16 @@
     <string name="two_voices">Два голоса</string>
     <string name="max_distance">Макс. интервал:</string>
 
+    <string-array name="note_names_array">
+        <item>До</item>
+        <item>Ре</item>
+        <item>Ми</item>
+        <item>Фа</item>
+        <item>Соль</item>
+        <item>Ля</item>
+        <item>Си</item>
+    </string-array>
+
     <string-array name="note_intervals_array">
         <item>Любой</item>
         <item>1</item>

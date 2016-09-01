@@ -5,6 +5,16 @@
     <string name="two_voices">Two voices</string>
     <string name="max_distance">Max interval:</string>
 
+    <string-array name="note_names_array">
+        <item>C</item>
+        <item>D</item>
+        <item>E</item>
+        <item>F</item>
+        <item>G</item>
+        <item>A</item>
+        <item>H</item>
+    </string-array>
+
     <string-array name="note_intervals_array">
         <item>Any</item>
         <item>1</item>

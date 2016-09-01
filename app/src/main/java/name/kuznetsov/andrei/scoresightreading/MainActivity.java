@@ -4,20 +4,16 @@ import android.app.Activity;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.annotation.NonNull;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.Switch;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
-
+import name.kuznetsov.andrei.scoresightreading.algs.ConstrainedRandomGenerator;
+import name.kuznetsov.andrei.scoresightreading.algs.PolySeqGenerator;
 import name.kuznetsov.andrei.scoresightreading.model.Note;
 import name.kuznetsov.andrei.scoresightreading.model.NotesEnum;
-import name.kuznetsov.andrei.scoresightreading.model.PolyChord;
 import name.kuznetsov.andrei.scoresightreading.model.PolySeqRep;
 import name.kuznetsov.andrei.scoresightreading.views.StaveView;
 
@@ -45,6 +41,8 @@ public class MainActivity extends Activity implements AppConfigChangeListener {
     private int nVoices = 1;
     private int maxInterval = 3;
 
+    private final PolySeqGenerator generator = new ConstrainedRandomGenerator();
+
     @Override
     public void onAppConfigurationChanged() {
         nVoices = 1;
@@ -66,7 +64,7 @@ public class MainActivity extends Activity implements AppConfigChangeListener {
         maxInterval = maxIntervalSpinner.getSelectedItemPosition();
 
         storeSettings();
-        PolySeqRep seq = genRandomPolySeqRep(nVoices, minNote, maxNote, stave.getMaxColumn());
+        PolySeqRep seq = generator.genPolySeq(nVoices, minNote, maxNote, maxInterval, stave.getMaxColumn());
         stave.renderNotes(seq);
     }
 
@@ -151,7 +149,7 @@ public class MainActivity extends Activity implements AppConfigChangeListener {
         stave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                PolySeqRep seq = genRandomPolySeqRep(nVoices, minNote, maxNote, stave.getMaxColumn());
+                PolySeqRep seq = generator.genPolySeq(nVoices, minNote, maxNote, maxInterval, stave.getMaxColumn());
                 clickHint.setVisibility(View.GONE);
                 rDragHint.setVisibility(View.GONE);
                 stave.renderNotes(seq);
@@ -164,7 +162,22 @@ public class MainActivity extends Activity implements AppConfigChangeListener {
                 onAppConfigurationChanged();
             }
         });
+
+//        findViewById(R.id.bn_play).setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                playMidi();
+//            }
+//        });
     }
+
+//    private void playMidi() {
+//        PolySeqRep notesToPlay = stave.getNotes();
+//
+//        MidiManager m = (MidiManager)this.getSystemService(Context.MIDI_SERVICE);
+//        MidiDeviceInfo[] infos = m.getDevices();
+//
+//    }
 
     private void initSpinnerListeners() {
         AdapterView.OnItemSelectedListener changeListener = new AdapterView.OnItemSelectedListener() {
@@ -204,89 +217,5 @@ public class MainActivity extends Activity implements AppConfigChangeListener {
         initSpinnersFromNote(minNoteSpinner, minOctaveSpinner, minNote);
         initSpinnersFromNote(maxNoteSpinner, maxOctaveSpinner, maxNote);
         maxIntervalSpinner.setSelection(maxInterval);
-    }
-
-    private int getMinVal() {
-        return (minNote.getOctave() - 1) * 7 + minNote.getNoteName().ordinal();
-    }
-
-    private int getMaxVal() {
-        return (maxNote.getOctave() - 1) * 7 + maxNote.getNoteName().ordinal();
-    }
-
-    private int getMaxSplit() {
-        return (maxInterval > 0) ? maxInterval : Integer.MAX_VALUE;
-    }
-
-    @NonNull
-    private PolySeqRep genRandomPolySeqRep(int nVoices, Note minNote, Note maxNote, int notesCount) {
-        List<PolyChord> chords = new LinkedList<>();
-        PolySeqRep seq = new PolySeqRep(chords);
-
-        final int minVal = getMinVal();
-        final int maxVal = getMaxVal();
-
-        final int vInterval = (maxVal - minVal) / nVoices;
-
-        int minValByVoice[] = new int[nVoices];
-        int maxValByVoice[] = new int[nVoices];
-        int lastVoiceValue[] = new int[nVoices];
-
-        Random rnd = new Random();
-
-        for (int v = nVoices - 1, i = 0; i < nVoices; v--, i++) {
-            minValByVoice[v] = minVal + vInterval * i;
-            maxValByVoice[v] = minVal + vInterval * (i + 1);
-
-            final int voiceRange = maxValByVoice[v] - minValByVoice[v];
-            if (voiceRange <= 0) {
-                lastVoiceValue[v] = minValByVoice[v];
-            } else {
-                lastVoiceValue[v] = rnd.nextInt(voiceRange) + minValByVoice[v];
-            }
-        }
-        maxValByVoice[0] = maxVal;
-
-
-        for (int i = 0; i < notesCount; i++) {
-            Note notes[] = new Note[nVoices];
-            for (int v = 0; v < nVoices; v++) {
-                final int range = Math.min(getMaxSplit(), maxValByVoice[v] - minValByVoice[v]);
-                int iVal;
-                if (range <= 0) {
-                    iVal = 0;
-                } else {
-                    iVal = rnd.nextInt(range * 2) - range;
-                    if (iVal >= 0) {
-                        iVal = iVal + 1;
-                    }
-                }
-
-                int nVal = lastVoiceValue[v] + iVal;
-                if (nVal > maxValByVoice[v]) {
-                    if (lastVoiceValue[v] == maxValByVoice[v]) {
-                        nVal = lastVoiceValue[v] - iVal;
-                    } else {
-                        nVal = maxValByVoice[v];
-                    }
-                } else if (nVal < minValByVoice[v]) {
-                    if (lastVoiceValue[v] == minValByVoice[v]) {
-                        nVal = lastVoiceValue[v] - iVal;
-                    } else {
-                        nVal = minValByVoice[v];
-                    }
-                }
-
-                nVal = Math.max(nVal, minValByVoice[v]);
-                nVal = Math.min(nVal, maxValByVoice[v]);
-                lastVoiceValue[v] = nVal;
-                NotesEnum note = NotesEnum.values()[nVal % 7];
-                int octave = nVal / 7;
-                notes[v] = new Note(note, octave, 0, v);
-            }
-            chords.add(PolyChord.mkChord(notes));
-        }
-
-        return seq;
     }
 }
