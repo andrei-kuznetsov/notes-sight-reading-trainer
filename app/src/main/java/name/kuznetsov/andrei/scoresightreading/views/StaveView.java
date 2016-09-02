@@ -192,33 +192,14 @@ public class StaveView extends View {
             bezierPath.close();
             canvas.drawPath(bezierPath, strokeAndFillPaint);
 
-            // draw note flags
             boolean flagUp = ((i.voice & 1) == 0);
             if (flagUp) {
                 float lnx = cx + getInterlineInterval12() - 3;
                 float ystem = cy - getInterlineInterval12() * 7 + 5;
                 canvas.drawLine(lnx, cy, lnx, ystem, strokePaint);
 
-///                This is good long (single):
-///                bezierPath.reset();
-///                bezierPath.moveTo(lnx, ystem);
-///
-///                bezierPath.cubicTo(
-///                        lnx, ystem + 2 * getInterlineInterval12(),
-///                        lnx + getInterlineInterval12() * 2.5f, ystem + getInterlineInterval12() * 2,
-///                        lnx + getInterlineInterval12() * 1.5f, ystem + getInterlineInterval12() * 6
-///                );
-///
-///                bezierPath.cubicTo(
-///                        lnx + getInterlineInterval12() * 2.5f, ystem + getInterlineInterval12() * 2,
-///                        lnx, ystem + 2 * getInterlineInterval12(),
-///                        lnx, ystem + 2 * getInterlineInterval12()
-///                );
-///
-///                bezierPath.close();
-///                canvas.drawPath(bezierPath, strokeAndFillPaint);
-
-
+                // draw note flags
+                /// note flag 1
                 bezierPath.moveTo(lnx, ystem);
                 bezierPath.cubicTo(
                         lnx, ystem + getInterlineInterval12(),
@@ -235,6 +216,7 @@ public class StaveView extends View {
 
                 canvas.translate(0, getInterlineInterval12() * 1.5f);
 
+                /// note flag 2
                 bezierPath.reset();
                 bezierPath.moveTo(lnx, ystem);
                 bezierPath.cubicTo(
@@ -249,29 +231,9 @@ public class StaveView extends View {
                 );
                 bezierPath.close();
                 canvas.drawPath(bezierPath, strokeAndFillPaint);
-
+                /// end of note flag
 
                 canvas.translate(0, -getInterlineInterval12() * 1.5f);
-
-
-//                bezierPath.reset();
-//                bezierPath.moveTo(lnx, ystem + 2 * getInterlineInterval12());
-//                bezierPath.cubicTo(
-//                        lnx, ystem + 2 * getInterlineInterval12(),
-//                        lnx + getInterlineInterval12() * 2.5f, ystem + 5 * getInterlineInterval12(),
-//                        lnx + getInterlineInterval12() * 2, ystem + 7 * getInterlineInterval12()
-//                );
-//
-//
-//                bezierPath.cubicTo(
-//                        lnx + getInterlineInterval12() * 2.5f, ystem + 5 * getInterlineInterval12(),
-//                        lnx, ystem + 3 * getInterlineInterval12(),
-//                        lnx, ystem + 3 * getInterlineInterval12()
-//                );
-//
-//                bezierPath.close();
-//                canvas.drawPath(bezierPath, strokeAndFillPaint);
-
             } else {
                 float lnx = cx - getInterlineInterval12() + 3;
                 canvas.drawLine(lnx, cy, lnx, cy + getInterlineInterval12() * 5, strokePaint);
