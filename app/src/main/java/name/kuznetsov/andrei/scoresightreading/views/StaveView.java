@@ -10,8 +10,11 @@ import android.view.View;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Observable;
+import java.util.Observer;
 
 import name.kuznetsov.andrei.scoresightreading.model.Note;
+import name.kuznetsov.andrei.scoresightreading.model.NoteImpl;
 import name.kuznetsov.andrei.scoresightreading.model.NotesEnum;
 import name.kuznetsov.andrei.scoresightreading.model.PolyChord;
 import name.kuznetsov.andrei.scoresightreading.model.PolySeqRep;
@@ -24,14 +27,16 @@ public class StaveView extends View {
         int column;
         int noteLine;
         int voice;
+        Note originalNote;
 
         public InlineNote() {
         }
 
-        public InlineNote(int column, int noteLine, int voice) {
+        public InlineNote(int column, int noteLine, int voice, Note originalNote) {
             this.column = column;
             this.noteLine = noteLine;
             this.voice = voice;
+            this.originalNote = originalNote;
         }
     }
 
@@ -52,6 +57,8 @@ public class StaveView extends View {
         super(context, attrs, defStyleAttr);
         initStaveLinePoints();
     }
+
+    private ColorMapper colorMapper = new DefaultColorMapper();
 
     private float staveLinePoints[];
     private float measureBarPoints[];
@@ -98,17 +105,17 @@ public class StaveView extends View {
             int v1octave = v1 / 7;
 
             chords.add(PolyChord.mkChord(
-                    new Note(v0note, v0octave, 0, 0),
-                    new Note(v1note, v1octave, 0, 1)
+                    new NoteImpl(v0note, v0octave, 0, 0),
+                    new NoteImpl(v1note, v1octave, 0, 1)
             ));
 
             for (NotesEnum nn : NotesEnum.values()) {
-//                chords.add(PolyChord.mkChord(new Note(nn, i, -1)));
-//                chords.add(PolyChord.mkChord(new Note(nn, i, 1)));
+//                chords.add(PolyChord.mkChord(new NoteImpl(nn, i, -1)));
+//                chords.add(PolyChord.mkChord(new NoteImpl(nn, i, 1)));
             }
         }
 
-        renderNotes(seq);
+        renderNotes(seq, colorMapper);
     }
 
     private static Paint strokePaint = new Paint();
@@ -167,8 +174,11 @@ public class StaveView extends View {
         canvas.drawLines(measureBarPoints, strokePaint);
 
         canvas.translate(getInterlineInterval(), 0);
+        Path bezierPath = new Path();
 
         for (InlineNote i : notesToRender) {
+            strokeAndFillPaint.setColor(colorMapper.mapColor(i.originalNote));
+
             float cx = i.column * getPosXInterval();
             float cy = midLineOffset - i.noteLine * getInterlineInterval12();
 
@@ -176,8 +186,7 @@ public class StaveView extends View {
             float ovalRX = (ovalR * 1.3f) / 0.75f; //getInterlineInterval12() + 4;
             float ovalRY = ovalR; //getInterlineInterval12() - 4;
 
-            Path bezierPath = new Path();
-
+            bezierPath.rewind();
             bezierPath.moveTo(cx - ovalRY * _1sqrt2, cy - ovalRY * _1sqrt2);
             bezierPath.cubicTo(
                     cx + (ovalRX - ovalRY) * _1sqrt2, cy - (ovalRY + ovalRX) * _1sqrt2,
@@ -198,42 +207,42 @@ public class StaveView extends View {
                 float ystem = cy - getInterlineInterval12() * 7 + 5;
                 canvas.drawLine(lnx, cy, lnx, ystem, strokePaint);
 
-                // draw note flags
-                /// note flag 1
-                bezierPath.moveTo(lnx, ystem);
-                bezierPath.cubicTo(
-                        lnx, ystem + getInterlineInterval12(),
-                        lnx + getInterlineInterval12() * 2.5f, ystem + getInterlineInterval12() * 2,
-                        lnx + getInterlineInterval12() * 1.5f, ystem + getInterlineInterval12() * 4
-                );
-                bezierPath.cubicTo(
-                        lnx + getInterlineInterval12() * 2.5f, ystem + getInterlineInterval12() * 2,
-                        lnx, ystem + 1.5f * getInterlineInterval12(),
-                        lnx, ystem + 1.5f * getInterlineInterval12()
-                );
-                bezierPath.close();
-                canvas.drawPath(bezierPath, strokeAndFillPaint);
+//                // draw note flags
+//                /// note flag 1
+//                bezierPath.moveTo(lnx, ystem);
+//                bezierPath.cubicTo(
+//                        lnx, ystem + getInterlineInterval12(),
+//                        lnx + getInterlineInterval12() * 2.5f, ystem + getInterlineInterval12() * 2,
+//                        lnx + getInterlineInterval12() * 1.5f, ystem + getInterlineInterval12() * 4
+//                );
+//                bezierPath.cubicTo(
+//                        lnx + getInterlineInterval12() * 2.5f, ystem + getInterlineInterval12() * 2,
+//                        lnx, ystem + 1.5f * getInterlineInterval12(),
+//                        lnx, ystem + 1.5f * getInterlineInterval12()
+//                );
+//                bezierPath.close();
+//                canvas.drawPath(bezierPath, strokeAndFillPaint);
+//
+//                canvas.translate(0, getInterlineInterval12() * 1.5f);
+//
+//                /// note flag 2
+//                bezierPath.reset();
+//                bezierPath.moveTo(lnx, ystem);
+//                bezierPath.cubicTo(
+//                        lnx, ystem + getInterlineInterval12(),
+//                        lnx + getInterlineInterval12() * 2.5f, ystem + getInterlineInterval12() * 2,
+//                        lnx + getInterlineInterval12() * 1.5f, ystem + getInterlineInterval12() * 4
+//                );
+//                bezierPath.cubicTo(
+//                        lnx + getInterlineInterval12() * 2.5f, ystem + getInterlineInterval12() * 2,
+//                        lnx, ystem + 1.5f * getInterlineInterval12(),
+//                        lnx, ystem + 1.5f * getInterlineInterval12()
+//                );
+//                bezierPath.close();
+//                canvas.drawPath(bezierPath, strokeAndFillPaint);
+//                canvas.translate(0, -getInterlineInterval12() * 1.5f);
+//                /// end of note flag
 
-                canvas.translate(0, getInterlineInterval12() * 1.5f);
-
-                /// note flag 2
-                bezierPath.reset();
-                bezierPath.moveTo(lnx, ystem);
-                bezierPath.cubicTo(
-                        lnx, ystem + getInterlineInterval12(),
-                        lnx + getInterlineInterval12() * 2.5f, ystem + getInterlineInterval12() * 2,
-                        lnx + getInterlineInterval12() * 1.5f, ystem + getInterlineInterval12() * 4
-                );
-                bezierPath.cubicTo(
-                        lnx + getInterlineInterval12() * 2.5f, ystem + getInterlineInterval12() * 2,
-                        lnx, ystem + 1.5f * getInterlineInterval12(),
-                        lnx, ystem + 1.5f * getInterlineInterval12()
-                );
-                bezierPath.close();
-                canvas.drawPath(bezierPath, strokeAndFillPaint);
-                /// end of note flag
-
-                canvas.translate(0, -getInterlineInterval12() * 1.5f);
             } else {
                 float lnx = cx - getInterlineInterval12() + 3;
                 canvas.drawLine(lnx, cy, lnx, cy + getInterlineInterval12() * 5, strokePaint);
@@ -261,7 +270,9 @@ public class StaveView extends View {
         canvas.translate(-getInterlineInterval(), 0);
     }
 
-    public void renderNotes(PolySeqRep seq) {
+    public void renderNotes(PolySeqRep seq, ColorMapper colorMapper) {
+        this.colorMapper = colorMapper;
+
         int posX = 0;
 
         notesToRender = new LinkedList<>();
@@ -270,13 +281,20 @@ public class StaveView extends View {
                 int offset = n.getNoteName().ordinal();
                 int octaveBaseLine = (n.getOctave() - 4) * 7;
                 int noteLine = octaveBaseLine + offset;
-                notesToRender.add(new InlineNote(posX, noteLine, n.getVoice()));
+                notesToRender.add(new InlineNote(posX, noteLine, n.getVoice(), n));
             }
 
             posX++;
         }
 
         invalidate();
+
+        seq.addObserver(new Observer() {
+            @Override
+            public void update(Observable observable, Object data) {
+                StaveView.this.postInvalidate();
+            }
+        });
     }
 
     public PolySeqRep getNotes() {

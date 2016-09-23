@@ -1,84 +1,25 @@
 package name.kuznetsov.andrei.scoresightreading.model;
 
 /**
- * @author andrei
+ * Created by andrei on 9/23/16.
  */
-public class Note {
+public interface Note extends ObjectWithAttachableAttributes {
+    NotesEnum getNoteName();
 
-    private NotesEnum noteName;
-    private int octave;
-    private int modifier;
-    private int voice;
+    void setNoteName(NotesEnum noteName);
 
-    public Note(NotesEnum noteName) {
-        this(noteName, 4);
-    }
+    int getOctave();
 
-    public Note(NotesEnum noteName, int octave) {
-        this(noteName, octave, 0);
-    }
+    void setOctave(int octave);
 
-    public Note(NotesEnum noteName, int octave, int modifier) {
-        this(noteName, octave, modifier, 0);
-    }
+    int getModifier();
 
-    public Note(NotesEnum noteName, int octave, int modifier, int voice) {
-        this.noteName = noteName;
-        this.octave = octave;
-        this.modifier = modifier;
-        this.voice = voice;
-    }
+    void setModifier(int modifier);
 
-    public NotesEnum getNoteName() {
-        return noteName;
-    }
+    int getMidiPitch();
 
-    public void setNoteName(NotesEnum noteName) {
-        this.noteName = noteName;
-    }
+    int getVoice();
 
-    public int getOctave() {
-        return octave;
-    }
-
-    public void setOctave(int octave) {
-        this.octave = octave;
-    }
-
-    public int getModifier() {
-        return modifier;
-    }
-
-    public void setModifier(int modifier) {
-        this.modifier = modifier;
-    }
-
-    public int getMidiPitch() {
-        return 12 * (octave + 1) + noteName.getMidiPitch() + modifier;
-    }
-
-    public int getVoice() {
-        return voice;
-    }
-
-    public void setVoice(int voice) {
-        this.voice = voice;
-    }
-
-    @Override
-    public String toString() {
-        String modifierStr = "";
-        int x = modifier;
-        while (x != 0) {
-            if (x > 0) {
-                modifierStr += "#";
-                x--;
-            } else {
-                modifierStr += "b";
-                x++;
-            }
-        }
-        return "Note{" + noteName + modifierStr + octave + '}';
-    }
+    void setVoice(int voice);
 
 }

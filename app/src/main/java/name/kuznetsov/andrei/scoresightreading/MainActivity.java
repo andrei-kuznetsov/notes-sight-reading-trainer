@@ -2,6 +2,7 @@ package name.kuznetsov.andrei.scoresightreading;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
+import android.content.pm.ResolveInfo;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.view.View;
@@ -10,14 +11,18 @@ import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.Switch;
 
-import name.kuznetsov.andrei.scoresightreading.algs.ConstrainedRandomGenerator;
-import name.kuznetsov.andrei.scoresightreading.algs.PolySeqGenerator;
-import name.kuznetsov.andrei.scoresightreading.model.Note;
+import name.kuznetsov.andrei.scoresightreading.algs.chk.CheckerEventListener;
+import name.kuznetsov.andrei.scoresightreading.algs.chk.ScoreCheckerV1;
+import name.kuznetsov.andrei.scoresightreading.algs.gen.ConstrainedRandomGenerator;
+import name.kuznetsov.andrei.scoresightreading.algs.gen.PolySeqGenerator;
+import name.kuznetsov.andrei.scoresightreading.midi.MIDIServiceConnection;
+import name.kuznetsov.andrei.scoresightreading.model.NoteImpl;
 import name.kuznetsov.andrei.scoresightreading.model.NotesEnum;
 import name.kuznetsov.andrei.scoresightreading.model.PolySeqRep;
+import name.kuznetsov.andrei.scoresightreading.views.CheckStateColorMapper;
 import name.kuznetsov.andrei.scoresightreading.views.StaveView;
 
-public class MainActivity extends Activity implements AppConfigChangeListener {
+public class MainActivity extends Activity implements AppConfigChangeListener, CheckerEventListener {
     private StaveView stave;
     private Switch twoVoices;
     private View clickHint;
@@ -36,12 +41,14 @@ public class MainActivity extends Activity implements AppConfigChangeListener {
     private Spinner maxOctaveSpinner;
     private Spinner maxIntervalSpinner;
 
-    private Note minNote = new Note(NotesEnum.C, 2);
-    private Note maxNote = new Note(NotesEnum.C, 7);
+    private NoteImpl minNoteImpl = new NoteImpl(NotesEnum.C, 2);
+    private NoteImpl maxNoteImpl = new NoteImpl(NotesEnum.C, 7);
     private int nVoices = 1;
     private int maxInterval = 3;
 
     private final PolySeqGenerator generator = new ConstrainedRandomGenerator();
+
+    private MIDIServiceConnection midiService = null;
 
     @Override
     public void onAppConfigurationChanged() {
@@ -50,33 +57,32 @@ public class MainActivity extends Activity implements AppConfigChangeListener {
             nVoices = 2;
         }
 
-        Note note1 = parseNote(minNoteSpinner, minOctaveSpinner);
-        Note note2 = parseNote(maxNoteSpinner, maxOctaveSpinner);
+        NoteImpl noteImpl1 = parseNote(minNoteSpinner, minOctaveSpinner);
+        NoteImpl noteImpl2 = parseNote(maxNoteSpinner, maxOctaveSpinner);
 
-        if (note1.getMidiPitch() > note2.getMidiPitch()) {
-            maxNote = note1;
-            minNote = note2;
+        if (noteImpl1.getMidiPitch() > noteImpl2.getMidiPitch()) {
+            maxNoteImpl = noteImpl1;
+            minNoteImpl = noteImpl2;
         } else {
-            maxNote = note2;
-            minNote = note1;
+            maxNoteImpl = noteImpl2;
+            minNoteImpl = noteImpl1;
         }
 
         maxInterval = maxIntervalSpinner.getSelectedItemPosition();
 
         storeSettings();
-        PolySeqRep seq = generator.genPolySeq(nVoices, minNote, maxNote, maxInterval, stave.getMaxColumn());
-        stave.renderNotes(seq);
+        genNewExercise();
     }
 
     private void storeSettings() {
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
         SharedPreferences.Editor editor = sharedPref.edit();
 
-        editor.putString(KEY_MIN_NOTE_NAME, minNote.getNoteName().toString());
-        editor.putInt(KEY_MIN_OCTAVE, minNote.getOctave());
+        editor.putString(KEY_MIN_NOTE_NAME, minNoteImpl.getNoteName().toString());
+        editor.putInt(KEY_MIN_OCTAVE, minNoteImpl.getOctave());
 
-        editor.putString(KEY_MAX_NOTE_NAME, maxNote.getNoteName().toString());
-        editor.putInt(KEY_MAX_OCTAVE, maxNote.getOctave());
+        editor.putString(KEY_MAX_NOTE_NAME, maxNoteImpl.getNoteName().toString());
+        editor.putInt(KEY_MAX_OCTAVE, maxNoteImpl.getOctave());
 
         editor.putInt(KEY_MAX_INTERVAL, maxInterval);
         editor.putInt(KEY_NVOICES, nVoices);
@@ -87,22 +93,22 @@ public class MainActivity extends Activity implements AppConfigChangeListener {
     private void readSettings() {
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
 
-        String strMinNoteName = sharedPref.getString(KEY_MIN_NOTE_NAME, minNote.getNoteName().toString());
-        int minNoteOctave = sharedPref.getInt(KEY_MIN_OCTAVE, minNote.getOctave());
-        minNote.setNoteName(NotesEnum.valueOf(strMinNoteName));
-        minNote.setOctave(minNoteOctave);
+        String strMinNoteName = sharedPref.getString(KEY_MIN_NOTE_NAME, minNoteImpl.getNoteName().toString());
+        int minNoteOctave = sharedPref.getInt(KEY_MIN_OCTAVE, minNoteImpl.getOctave());
+        minNoteImpl.setNoteName(NotesEnum.valueOf(strMinNoteName));
+        minNoteImpl.setOctave(minNoteOctave);
 
-        String strMaxNoteName = sharedPref.getString(KEY_MAX_NOTE_NAME, maxNote.getNoteName().toString());
-        int maxNoteOctave = sharedPref.getInt(KEY_MAX_OCTAVE, maxNote.getOctave());
-        maxNote.setNoteName(NotesEnum.valueOf(strMaxNoteName));
-        maxNote.setOctave(maxNoteOctave);
+        String strMaxNoteName = sharedPref.getString(KEY_MAX_NOTE_NAME, maxNoteImpl.getNoteName().toString());
+        int maxNoteOctave = sharedPref.getInt(KEY_MAX_OCTAVE, maxNoteImpl.getOctave());
+        maxNoteImpl.setNoteName(NotesEnum.valueOf(strMaxNoteName));
+        maxNoteImpl.setOctave(maxNoteOctave);
 
 
         maxInterval = sharedPref.getInt(KEY_MAX_INTERVAL, maxInterval);
         nVoices = sharedPref.getInt(KEY_NVOICES, nVoices);
     }
 
-    private Note parseNote(Spinner noteSpinner, Spinner octaveSpinner) {
+    private NoteImpl parseNote(Spinner noteSpinner, Spinner octaveSpinner) {
         int octave = octaveSpinner.getSelectedItemPosition() + 3;
         int noteSelected = noteSpinner.getSelectedItemPosition();
 
@@ -113,12 +119,12 @@ public class MainActivity extends Activity implements AppConfigChangeListener {
         }
         NotesEnum noteName = NotesEnum.values()[noteSelected];
 
-        return new Note(noteName, octave);
+        return new NoteImpl(noteName, octave);
     }
 
-    private void initSpinnersFromNote(Spinner noteSpinner, Spinner octaveSpinner, Note note) {
-        int octave = note.getOctave() - 3;
-        int noteSelected = note.getNoteName().ordinal();
+    private void initSpinnersFromNote(Spinner noteSpinner, Spinner octaveSpinner, NoteImpl noteImpl) {
+        int octave = noteImpl.getOctave() - 3;
+        int noteSelected = noteImpl.getNoteName().ordinal();
 
         noteSpinner.setSelection(noteSelected);
         octaveSpinner.setSelection(octave);
@@ -149,10 +155,9 @@ public class MainActivity extends Activity implements AppConfigChangeListener {
         stave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                PolySeqRep seq = generator.genPolySeq(nVoices, minNote, maxNote, maxInterval, stave.getMaxColumn());
                 clickHint.setVisibility(View.GONE);
                 rDragHint.setVisibility(View.GONE);
-                stave.renderNotes(seq);
+                genNewExercise();
             }
         });
 
@@ -163,12 +168,66 @@ public class MainActivity extends Activity implements AppConfigChangeListener {
             }
         });
 
+        ResolveInfo midiServiceMeta = getPackageManager().resolveService(MIDIServiceConnection.getIntent(), 0);
+        if (midiServiceMeta != null) {
+            findViewById(R.id.midi_parent).setVisibility(View.VISIBLE);
+
+            findViewById(R.id.bn_connect_midi).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    connectMidiService();
+                }
+            });
+
+
+            findViewById(R.id.bn_disconnect_midi).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    disconnectMidiService();
+                }
+            });
+        } else {
+            findViewById(R.id.midi_parent).setVisibility(View.GONE);
+        }
+
+        findViewById(R.id.bn_play).setVisibility(View.GONE);
+
 //        findViewById(R.id.bn_play).setOnClickListener(new View.OnClickListener() {
 //            @Override
 //            public void onClick(View view) {
 //                playMidi();
 //            }
 //        });
+    }
+
+    @Override
+    protected void onDestroy() {
+        disconnectMidiService();
+        super.onDestroy();
+    }
+
+    private void disconnectMidiService() {
+        if (midiService != null) {
+            midiService.disconnectMidiService();
+        }
+    }
+
+    private void connectMidiService() {
+        if (midiService == null) {
+            midiService = new MIDIServiceConnection(this);
+        }
+        midiService.connectMidiService();
+    }
+
+    private void genNewExercise() {
+        PolySeqRep seq = generator.genPolySeq(nVoices, minNoteImpl, maxNoteImpl, maxInterval, stave.getMaxColumn());
+
+        ScoreCheckerV1 checker = new ScoreCheckerV1(seq);
+        checker.setCheckerEventListener(this);
+        if (midiService != null) {
+            midiService.setListener(checker.getMidiListenerImpl());
+        }
+        stave.renderNotes(seq, new CheckStateColorMapper());
     }
 
 //    private void playMidi() {
@@ -214,8 +273,29 @@ public class MainActivity extends Activity implements AppConfigChangeListener {
         noteIntervalAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         maxIntervalSpinner.setAdapter(noteIntervalAdapter);
 
-        initSpinnersFromNote(minNoteSpinner, minOctaveSpinner, minNote);
-        initSpinnersFromNote(maxNoteSpinner, maxOctaveSpinner, maxNote);
+        initSpinnersFromNote(minNoteSpinner, minOctaveSpinner, minNoteImpl);
+        initSpinnersFromNote(maxNoteSpinner, maxOctaveSpinner, maxNoteImpl);
         maxIntervalSpinner.setSelection(maxInterval);
+    }
+
+    @Override
+    public void endOfExerciese() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                genNewExercise();
+            }
+        });
+    }
+
+    @Override
+    public void modelChanged(final PolySeqRep model) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                model.setChanged();
+                model.notifyObservers();
+            }
+        });
     }
 }

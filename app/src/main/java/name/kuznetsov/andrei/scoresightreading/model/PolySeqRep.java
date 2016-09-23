@@ -2,11 +2,12 @@ package name.kuznetsov.andrei.scoresightreading.model;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Observable;
 
 /**
  * @author andrei
  */
-public class PolySeqRep {
+public class PolySeqRep extends Observable {
 
     private List<PolyChord> chords;
 
@@ -26,4 +27,8 @@ public class PolySeqRep {
         this.chords = chords;
     }
 
+    @Override
+    public void setChanged() {
+        super.setChanged();
+    }
 }

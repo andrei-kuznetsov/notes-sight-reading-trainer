@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Sight reading</string>
-    <string name="min_note">Min note:</string>
-    <string name="max_note">Max note:</string>
+    <string name="min_note">Min noteImpl:</string>
+    <string name="max_note">Max noteImpl:</string>
     <string name="two_voices">Two voices</string>
     <string name="max_distance">Max interval:</string>
 

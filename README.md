@@ -1,2 +1,2 @@
-# notes-sight-reading-trainer
+# noteImpls-sight-reading-trainer
 Notes sight reading trainer for Android
