@@ -75,6 +75,21 @@ public class NoteImpl extends ObjectWithAttachableAttributesImpl implements Note
     }
 
     @Override
+    public Note copy() {
+        return new NoteImpl(noteName, octave, modifier, voice);
+    }
+
+    @Override
+    public DurationsEnum getDuration() {
+        return null;
+    }
+
+    @Override
+    public void setDuration(DurationsEnum duration) {
+
+    }
+
+    @Override
     public String toString() {
         String modifierStr = "";
         int x = modifier;

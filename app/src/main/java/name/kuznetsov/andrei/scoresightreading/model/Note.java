@@ -22,4 +22,9 @@ public interface Note extends ObjectWithAttachableAttributes {
 
     void setVoice(int voice);
 
+    Note copy();
+
+    DurationsEnum getDuration();
+
+    void setDuration(DurationsEnum duration);
 }
