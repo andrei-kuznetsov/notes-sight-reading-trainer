@@ -19,6 +19,12 @@ import name.kuznetsov.andrei.scoresightreading.model.PolySeqRep;
  * Created by andrei on 8/25/16.
  */
 public class StaveView extends View {
+
+    public static final int LINES_PER_STAVE = 5;
+    public static final int LINES_BETWEEN_STAVES = 1;
+    public static final int STAVES_COUNT = 2;
+    public static final int POINTS_PER_LINE_SEGMENT = 4;
+
     private static class InlineNote {
         int column;
         int noteLine;
@@ -56,7 +62,7 @@ public class StaveView extends View {
     private int interlineInterval12 = 20; // (1/2) half of interline interval
     private int midLineOffset = interlineInterval12 * 2 * 7;
     private int maxColumn = 16;
-    private final int measureColumn = 4;
+    private final int COLUMNS_PER_MEASURE = 4;
 
     public int getMaxColumn() {
         return maxColumn;
@@ -78,7 +84,7 @@ public class StaveView extends View {
 
     private void initStaveLinePoints() {
         staveLinePoints = new float[5 * 4 + 5 * 4];
-        measureBarPoints = new float[2 * (4 * getMaxColumn() / measureColumn)];
+        measureBarPoints = new float[2 * (4 * getMaxColumn() / COLUMNS_PER_MEASURE)];
         initSample();
     }
 
@@ -131,18 +137,32 @@ public class StaveView extends View {
             staveLinePoints[idxBase + 5] = staveLinePoints[idxBase + 7] = midLineOffset - ((i + 1) * getInterlineInterval());
         }
 
-        for (int i = 0; i < maxColumn / measureColumn; i++) {
-            final int idxBase = i * 8;
-            measureBarPoints[idxBase + 0] =
-                    measureBarPoints[idxBase + 2] =
-                            measureBarPoints[idxBase + 4] =
-                                    measureBarPoints[idxBase + 6] =
-                                            (i + 1) * getPosXInterval() * measureColumn;
+        int measuresCount = maxColumn / COLUMNS_PER_MEASURE;
+        measureBarPoints = growMeasureBarPointsIfNeeded(measureBarPoints, measuresCount);
+        for (int i = 0; i < measuresCount; i++) {
+            final int idxBase = i * (POINTS_PER_LINE_SEGMENT * STAVES_COUNT);
+            float xCoord = (i + 1) * getPosXInterval() * COLUMNS_PER_MEASURE;
+            int yOffsetOuter = LINES_PER_STAVE * getInterlineInterval();
+            int yOffsetInner = LINES_BETWEEN_STAVES * getInterlineInterval();
 
-            measureBarPoints[idxBase + 1] = midLineOffset - 5 * getInterlineInterval();
-            measureBarPoints[idxBase + 3] = midLineOffset - 1 * getInterlineInterval();
-            measureBarPoints[idxBase + 5] = midLineOffset + 5 * getInterlineInterval();
-            measureBarPoints[idxBase + 7] = midLineOffset + 1 * getInterlineInterval();
+            measureBarPoints[idxBase + 0] = xCoord;
+            measureBarPoints[idxBase + 1] = midLineOffset - yOffsetOuter;
+            measureBarPoints[idxBase + 2] = xCoord;
+            measureBarPoints[idxBase + 3] = midLineOffset - yOffsetInner;
+
+            measureBarPoints[idxBase + POINTS_PER_LINE_SEGMENT + 0] = xCoord;
+            measureBarPoints[idxBase + POINTS_PER_LINE_SEGMENT + 1] = midLineOffset + yOffsetOuter;
+            measureBarPoints[idxBase + POINTS_PER_LINE_SEGMENT + 2] = xCoord;
+            measureBarPoints[idxBase + POINTS_PER_LINE_SEGMENT + 3] = midLineOffset + yOffsetInner;
+        }
+    }
+
+    private float[] growMeasureBarPointsIfNeeded(float[] measureBarPoints, int measuresCount) {
+        int nPointsNeededToDrawMeasureLines = measuresCount * POINTS_PER_LINE_SEGMENT * STAVES_COUNT;
+        if (measureBarPoints.length < nPointsNeededToDrawMeasureLines){
+            return new float[nPointsNeededToDrawMeasureLines];
+        } else {
+            return measureBarPoints;
         }
     }
 
